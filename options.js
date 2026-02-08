@@ -124,7 +124,7 @@ function renderList() {
     el.dataset.id = r.id;
 
     const title = (r.name && r.name.trim()) ? r.name.trim() : "(без названия)";
-    const type = (r.patternType === "regex") ? "REGEX" : "MATCH";
+    const type = (r.patternType === "regex") ? "REGEX" : "Chrome";
     const runAtLabel = 
       r.runAt === "document_head" ? "HEAD" :
       r.runAt === "document_start" ? "START" :
