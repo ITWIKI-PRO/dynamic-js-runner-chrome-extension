@@ -1,4 +1,4 @@
-# Dynamic JS Runner (Chrome Extension)
+# ITW JS (Chrome Extension)
 
 Расширение позволяет запускать произвольный JavaScript на страницах, которые вы посещаете, по заданным вами правилам (match patterns).
 

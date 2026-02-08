@@ -94,7 +94,7 @@ async function injectRule(tabId, rule) {
   const code = String(rule.code || "");
   if (!code.trim()) return;
 
-  const wrapped = `(async () => {\n${code}\n})().catch(e => console.error('[Dynamic JS Runner] Script error:', e));`;
+  const wrapped = `(async () => {\n${code}\n})().catch(e => console.error('[ITW JS] Script error:', e));`;
 
   await chrome.scripting.executeScript({
     target: { tabId },
@@ -125,7 +125,7 @@ async function handleTab(tabId, url, reason) {
     try {
       await injectRule(tabId, rule);
     } catch (e) {
-      console.warn("[Dynamic JS Runner] Failed to inject rule", rule.id, "reason:", reason, e);
+      console.warn("[ITW JS] Failed to inject rule", rule.id, "reason:", reason, e);
     }
   }
 }

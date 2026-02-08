@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Dynamic JS Runner",
+  "name": "ITW JS Runner",
   "version": "1.0.0",
   "description": "Run user-defined JavaScript snippets automatically on matching pages.",
   "permissions": [
@@ -18,7 +18,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Dynamic JS Runner"
+    "default_title": "ITW JS Runner"
   },
   "options_page": "options.html",
   "icons": {
