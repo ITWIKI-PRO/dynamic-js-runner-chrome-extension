@@ -4,6 +4,25 @@ const DEFAULT_STATE = {
   rules: []
 };
 
+// Track recent injections to avoid duplicate injections for the same tab+rule
+const _recentInjections = new Map(); // tabId -> Map(ruleId -> timestamp)
+function _shouldInject(tabId, ruleId, windowMs = 3000) {
+  try {
+    let m = _recentInjections.get(tabId);
+    const now = Date.now();
+    if (!m) {
+      m = new Map();
+      _recentInjections.set(tabId, m);
+    }
+    const last = m.get(ruleId) || 0;
+    if (now - last < windowMs) return false;
+    m.set(ruleId, now);
+    // cleanup old entries
+    for (const [k, v] of m.entries()) if (now - v > 60000) m.delete(k);
+    return true;
+  } catch (e) { return true; }
+}
+
 chrome.runtime.onInstalled.addListener(async () => {
   const cur = await chrome.storage.local.get(null);
   if (!cur || Object.keys(cur).length === 0) {
@@ -86,27 +105,68 @@ function normalizeRule(rule) {
     patternType: rule.patternType ?? "match",
     code: rule.code ?? "",
     runAt: rule.runAt ?? "document_idle",
-    world: rule.world ?? "MAIN"
+    world: rule.world ?? "MAIN",
+    blockingHead: rule.blockingHead ?? false
   };
 }
 
 async function injectRule(tabId, rule) {
   const code = String(rule.code || "");
   if (!code.trim()) return;
+  const baseWrapped = `(async () => {\n${code}\n})().catch(e => console.error('[ITW JS] Script error:', e));`;
+  // Prepend a visible marker so we can observe which injection actually ran in page console
+  const marker = `console.info('[ITW JS RUN]', ${JSON.stringify(rule.id)}, 'runAt', ${JSON.stringify(rule.runAt)});\n`;
+  const wrapped = marker + baseWrapped;
 
-  const wrapped = `(async () => {\n${code}\n})().catch(e => console.error('[ITW JS] Script error:', e));`;
+  try {
+    if (rule.runAt === "document_head") {
+      // avoid duplicate injection for same tab+rule
+      if (!_shouldInject(tabId, rule.id)) {
+        console.debug('[ITW JS] skip duplicate head injection', rule.id, 'tab', tabId);
+        return;
+      }
+      console.debug('[ITW JS] injecting (head) rule (via executeScript)', rule.id, 'tab', tabId);
+      // Ensure head injections run in the page context (MAIN) so they can interact with head.
+      const execWorldHead = 'MAIN';
+      console.debug('[ITW JS] execWorld for head', execWorldHead);
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        world: execWorldHead,
+        injectImmediately: true,
+        func: (src) => {
+          // eslint-disable-next-line no-new-func
+          const fn = new Function(src);
+          return fn();
+        },
+        args: [wrapped]
+      });
+      console.debug('[ITW JS] injected (head) rule', rule.id);
+      return;
+    }
 
-  await chrome.scripting.executeScript({
-    target: { tabId },
-    world: rule.world === "ISOLATED" ? "ISOLATED" : "MAIN",
-    injectImmediately: rule.runAt === "document_start",
-    func: (src) => {
-      // eslint-disable-next-line no-new-func
-      const fn = new Function(src);
-      return fn();
-    },
-    args: [wrapped]
-  });
+    // avoid duplicate injection for same tab+rule
+    if (!_shouldInject(tabId, rule.id)) {
+      console.debug('[ITW JS] skip duplicate injection', rule.id, 'tab', tabId);
+      return;
+    }
+    // Use the rule's configured world (MAIN by default) — restore previous behavior
+    const execWorld = rule.world === "ISOLATED" ? "ISOLATED" : "MAIN";
+    console.debug('[ITW JS] injecting rule', rule.id, 'tab', tabId, 'runAt', rule.runAt, 'execWorld', execWorld);
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      world: execWorld,
+      injectImmediately: rule.runAt === "document_start",
+      func: (src) => {
+        // eslint-disable-next-line no-new-func
+        const fn = new Function(src);
+        return fn();
+      },
+      args: [wrapped]
+    });
+    console.debug('[ITW JS] injected rule', rule.id);
+  } catch (err) {
+    console.error('[ITW JS] injectRule error for', rule.id, err);
+  }
 }
 
 async function handleTab(tabId, url, reason) {
@@ -115,23 +175,43 @@ async function handleTab(tabId, url, reason) {
 
   const st = await getState();
   if (!st.enabled) return;
+  console.debug('[ITW JS] handleTab', { tabId, url, reason });
 
   const rules = st.rules.map(normalizeRule).filter(r => r.enabled);
   const matched = rules.filter(r => {
     try { return urlMatchesRule(r, url); } catch { return false; }
   });
 
+  console.debug('[ITW JS] matched rules', matched.map(r => ({ id: r.id, runAt: r.runAt })));
+
   for (const rule of matched) {
     try {
-      await injectRule(tabId, rule);
+      // Only inject rules that match the current navigation phase.
+      // - during loading: inject rules meant for document_start or document_head
+      // - on complete: inject rules meant for document_end or document_idle
+      if (reason === 'onUpdated.loading') {
+        if (rule.runAt === 'document_start' || rule.runAt === 'document_head') {
+          await injectRule(tabId, rule);
+        }
+      } else {
+        // default to complete: handle document_end / document_idle
+        if (rule.runAt === 'document_end' || rule.runAt === 'document_idle') {
+          await injectRule(tabId, rule);
+        }
+      }
     } catch (e) {
       console.warn("[ITW JS] Failed to inject rule", rule.id, "reason:", reason, e);
     }
   }
 }
 
+// Listen for both loading and complete events so we can inject at document_start (loading)
+// as well as document_end/document_idle (complete).
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && tab?.url) {
+  if (!tab?.url) return;
+  if (changeInfo.status === "loading") {
+    await handleTab(tabId, tab.url, "onUpdated.loading");
+  } else if (changeInfo.status === "complete") {
     await handleTab(tabId, tab.url, "onUpdated.complete");
   }
 });

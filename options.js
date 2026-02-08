@@ -93,7 +93,8 @@ function normalizeRule(rule) {
     patternType: rule.patternType ?? "match",
     code: rule.code ?? "",
     runAt: rule.runAt ?? "document_idle",
-    world: rule.world ?? "MAIN"
+    world: rule.world ?? "MAIN",
+    blockingHead: rule.blockingHead ?? false
   };
 }
 
@@ -124,9 +125,15 @@ function renderList() {
 
     const title = (r.name && r.name.trim()) ? r.name.trim() : "(без названия)";
     const type = (r.patternType === "regex") ? "REGEX" : "MATCH";
+    const runAtLabel = 
+      r.runAt === "document_head" ? "HEAD" :
+      r.runAt === "document_start" ? "START" :
+      r.runAt === "document_end" ? "END" : "IDLE";
+    const headStyle = r.runAt === "document_head" ? "background-color: #c41e3a;" : "";
     el.innerHTML = `
       <div class="pill">${r.enabled ? "ON" : "OFF"}</div>
       <div class="pill">${type}</div>
+      <div class="pill" style="${headStyle}">${runAtLabel}</div>
       <div class="ruleMain">
         <div class="ruleTitle">${escapeHtml(title)}</div>
         <div class="ruleSub">${escapeHtml(r.pattern)}</div>
@@ -204,6 +211,7 @@ $("saveRule").addEventListener("click", async () => {
   r.world = $("world").value;
   r.code = $("code").value;
   r.enabled = $("ruleEnabled").checked;
+  r.blockingHead = r.runAt === "document_head";
 
   await saveState();
   renderList();
