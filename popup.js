@@ -63,9 +63,43 @@ async function refresh() {
   const rules = Array.isArray(state.rules) ? state.rules : [];
   const url = tab?.url ?? "";
   const matched = url ? rules.filter(r => (r?.enabled !== false) && urlMatchesRule(r, url)) : [];
-  $("matched").textContent = String(matched.length);
+  
+  // Обновляем список скриптов
+  const scriptsList = $("scriptsList");
+  const noScripts = $("noScripts");
+  
+  if (matched.length === 0) {
+    scriptsList.innerHTML = "";
+    noScripts.style.display = "block";
+  } else {
+    noScripts.style.display = "none";
+    scriptsList.innerHTML = matched
+      .map(rule => {
+        const name = rule.name || "(без названия)";
+        return `<div class="script-item" data-rule-id="${rule.id}" title="Нажмите для редактирования">${escapeHtml(name)}</div>`;
+      })
+      .join("");
+    
+    // Добавляем обработчики клика
+    scriptsList.querySelectorAll(".script-item").forEach(item => {
+      item.addEventListener("click", async () => {
+        const ruleId = item.dataset.ruleId;
+        if (ruleId) {
+          // Сохраняем выбранный ID и открываем страницу опций
+          await chrome.storage.session.set({ selectedRuleId: ruleId });
+          await chrome.runtime.openOptionsPage();
+        }
+      });
+    });
+  }
 
   $("statusLine").textContent = state.enabled ? "Автозапуск активен" : "Автозапуск отключён";
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 $("enabled").addEventListener("change", async (e) => {

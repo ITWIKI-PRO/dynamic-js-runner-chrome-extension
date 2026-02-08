@@ -268,7 +268,16 @@ async function init() {
   await saveState(); // persist normalization if needed
   renderList();
   clearEditor();
-  if (state.rules.length) selectRule(state.rules[0].id);
+  
+  // Проверяем, если нужно выбрать конкретное правило из popup
+  const session = await chrome.storage.session.get(['selectedRuleId']);
+  if (session.selectedRuleId && state.rules.some(r => r.id === session.selectedRuleId)) {
+    selectRule(session.selectedRuleId);
+    // Очищаем selectedRuleId из session
+    await chrome.storage.session.remove('selectedRuleId');
+  } else if (state.rules.length) {
+    selectRule(state.rules[0].id);
+  }
 }
 
 init();
