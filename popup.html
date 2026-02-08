@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dynamic JS Runner</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Dynamic JS Runner</div>
+
+    <div class="row">
+      <label class="switch">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </label>
+      <div class="label">
+        <div class="primary">Включено</div>
+        <div class="secondary" id="statusLine">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="k">Текущая страница</div>
+      <div class="v" id="url">—</div>
+      <div class="k" style="margin-top:10px;">Подходящих правил</div>
+      <div class="v" id="matched">—</div>
+    </div>
+
+    <div class="buttons">
+      <button id="runNow">Запустить сейчас</button>
+      <button id="openOptions" class="secondary">Правила</button>
+    </div>
+
+    <div class="hint">
+      Скрипты исполняются автоматически при открытии страницы, если URL совпадает с шаблоном.
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dynamic JS Runner — Правила</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+
+<body>
+  <header>
+    <div class="brand">
+      <div class="h1">Dynamic JS Runner</div>
+      <div class="h2">Правила запуска пользовательских JS-скриптов</div>
+    </div>
+    <div class="actions">
+      <button id="addRule">Добавить правило</button>
+      <button id="exportRules" class="secondary">Экспорт</button>
+      <label class="file secondary">
+        Импорт <input id="importFile" type="file" accept="application/json" />
+      </label>
+    </div>
+  </header>
+
+  <div id="notificationContainer" class="notificationContainer"></div>
+
+  <main>
+    <div class="grid">
+      <section class="list">
+        <div class="sectionTitle">Список правил</div>
+        <div id="rules"></div>
+      </section>
+
+      <section class="editor">
+        <div class="sectionTitle">Редактор</div>
+
+        <div class="field">
+          <label>Название (необязательно)</label>
+          <input id="name" placeholder="Например: Скрыть блоки на сайте" />
+        </div>
+
+        <div class="field">
+          <label>Тип URL-условия</label>
+          <select id="patternType">
+            <option value="match">Chrome</option>
+            <option value="regex">Regex</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>URL условие</label>
+          <input id="pattern" placeholder="*://*.example.com/*" />
+          <div class="help" id="patternHelp">
+            Примеры (Chrome): <code>*://*/*</code>, <code>https://example.com/*</code>, <code>*://*.google.com/*</code>
+            Примеры (Regex): <code>^https?://(www\.)?example\.com/.*$</code>,
+            <code>^https?://(?!.*google\.com).*$</code>
+          </div>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label>Место запуска</label>
+            <select id="runAt">
+              <option value="document_idle">После загрузки</option>
+              <option value="document_end">Конец</option>
+              <option value="document_start">Начало</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Среда выполнения</label>
+            <select id="world">
+              <option value="MAIN">Страница</option>
+              <option value="ISOLATED">Контент-скрипт</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>JavaScript</label>
+          <textarea id="code" spellcheck="false"
+            placeholder="// Любой JS. Выполняется в async IIFE, ошибки пишутся в console."></textarea>
+        </div>
+
+        <div class="rowButtons">
+          <label class="checkbox">
+            <input type="checkbox" id="ruleEnabled" />
+            <span>Правило включено</span>
+          </label>
+
+          <div class="spacer"></div>
+
+          <button id="saveRule">Сохранить</button>
+          <button id="deleteRule" class="danger">Удалить</button>
+        </div>
+
+        <div class="note">
+          <b>Важно:</b> это расширение исполняет произвольный код на посещаемых сайтах.
+          Используйте только собственные скрипты, которым доверяете.
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="options.js"></script>
+</body>
+
+</html>
