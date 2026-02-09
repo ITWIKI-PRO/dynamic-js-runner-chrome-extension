@@ -135,6 +135,7 @@ main {
   border: 1px solid #243246;
   border-radius: 999px;
   opacity: .9;
+  text-align: center;
 }
 
 .ruleMain {
@@ -158,6 +159,7 @@ main {
 
 .ruleToggle {
   margin-left: auto;
+  width: auto;
 }
 
 .field {
