@@ -11,10 +11,13 @@ body { margin: 0; background: #0b0f14; color: #e6edf3; width: 340px; }
 .card { margin-top: 10px; padding: 10px; background: #111826; border: 1px solid #1f2a3a; border-radius: 10px; }
 .k { font-size: 12px; opacity: .8; }
 .v { word-break: break-all; margin-top: 4px; }
+.current-page { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.current-info { flex: 1; min-width: 0; }
 .buttons { display: flex; gap: 8px; margin-top: 10px; }
 button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #243246; background: #1b2a41; color: #e6edf3; cursor: pointer; font-weight: 600; }
 button:hover { filter: brightness(1.08); }
 button.secondary { background: #121a27; }
+button.small { flex: 0 0 auto; padding: 6px 10px; font-size: 12px; border-radius: 8px; }
 .hint { margin-top: 10px; font-size: 12px; opacity: .8; line-height: 1.35; }
 
 .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
