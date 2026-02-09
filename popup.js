@@ -62,7 +62,7 @@ async function refresh() {
 
   const rules = Array.isArray(state.rules) ? state.rules : [];
   const url = tab?.url ?? "";
-  const matched = url ? rules.filter(r => (r?.enabled !== false) && urlMatchesRule(r, url)) : [];
+  const matched = url ? rules.filter(r => urlMatchesRule(r, url)) : [];
   
   // Обновляем список скриптов
   const scriptsList = $("scriptsList");
@@ -76,7 +76,13 @@ async function refresh() {
     scriptsList.innerHTML = matched
       .map(rule => {
         const name = rule.name || "(без названия)";
-        return `<div class="script-item" data-rule-id="${rule.id}" title="Нажмите для редактирования">${escapeHtml(name)}</div>`;
+        const disabled = rule.enabled === false;
+        const status = disabled ? `<div class="script-state">Отключен</div>` : "";
+        const classes = disabled ? "script-item is-disabled" : "script-item";
+        return `<div class="${classes}" data-rule-id="${rule.id}" data-enabled="${!disabled}" title="Нажмите для редактирования">
+          <div class="script-title">${escapeHtml(name)}</div>
+          ${status}
+        </div>`;
       })
       .join("");
     
@@ -89,6 +95,16 @@ async function refresh() {
           await chrome.storage.session.set({ selectedRuleId: ruleId });
           await chrome.runtime.openOptionsPage();
         }
+      });
+
+      item.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        const ruleId = item.dataset.ruleId;
+        if (!ruleId) return;
+        openScriptMenu(event.clientX, event.clientY, {
+          id: ruleId,
+          enabled: item.dataset.enabled === "true"
+        });
       });
     });
   }
@@ -138,6 +154,52 @@ async function createRuleForCurrentPage() {
   await chrome.runtime.openOptionsPage();
 }
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function closeScriptMenu() {
+  const menu = $("scriptMenu");
+  menu.classList.remove("open");
+  menu.setAttribute("aria-hidden", "true");
+  menu.dataset.ruleId = "";
+  menu.dataset.enabled = "";
+}
+
+function openScriptMenu(x, y, rule) {
+  const menu = $("scriptMenu");
+  const toggleButton = $("menuToggle");
+  const label = rule.enabled ? "Отключить" : "Включить";
+  toggleButton.textContent = label;
+  menu.dataset.ruleId = rule.id;
+  menu.dataset.enabled = String(rule.enabled);
+  menu.classList.add("open");
+  menu.setAttribute("aria-hidden", "false");
+
+  const { innerWidth, innerHeight } = window;
+  const rect = menu.getBoundingClientRect();
+  const left = clamp(x, 8, innerWidth - rect.width - 8);
+  const top = clamp(y, 8, innerHeight - rect.height - 8);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
+}
+
+async function updateRuleEnabled(ruleId, enabled) {
+  const current = await chrome.storage.local.get(null);
+  const rules = Array.isArray(current.rules) ? current.rules : [];
+  const index = rules.findIndex(rule => rule.id === ruleId);
+  if (index === -1) return;
+  rules[index] = { ...rules[index], enabled };
+  await chrome.storage.local.set({ rules });
+}
+
+async function deleteRule(ruleId) {
+  const current = await chrome.storage.local.get(null);
+  const rules = Array.isArray(current.rules) ? current.rules : [];
+  const nextRules = rules.filter(rule => rule.id !== ruleId);
+  await chrome.storage.local.set({ rules: nextRules });
+}
+
 $("enabled").addEventListener("change", async (e) => {
   await chrome.runtime.sendMessage({ type: "SET_ENABLED", enabled: e.target.checked });
   const statusText = e.target.checked ? "Автозапуск включен" : "Автозапуск отключен";
@@ -169,6 +231,47 @@ $("openOptions").addEventListener("click", async () => {
 
 $("createScript").addEventListener("click", async () => {
   await createRuleForCurrentPage();
+});
+
+document.addEventListener("click", (event) => {
+  const menu = $("scriptMenu");
+  if (!menu.classList.contains("open")) return;
+  if (menu.contains(event.target)) return;
+  closeScriptMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeScriptMenu();
+  }
+});
+
+window.addEventListener("blur", () => {
+  closeScriptMenu();
+});
+
+$("menuToggle").addEventListener("click", async () => {
+  const menu = $("scriptMenu");
+  const ruleId = menu.dataset.ruleId;
+  const enabled = menu.dataset.enabled === "true";
+  if (!ruleId) return;
+  await updateRuleEnabled(ruleId, !enabled);
+  const message = enabled ? "Скрипт отключен" : "Скрипт включен";
+  showNotification(message, "info");
+  closeScriptMenu();
+  await refresh();
+});
+
+$("menuDelete").addEventListener("click", async () => {
+  const menu = $("scriptMenu");
+  const ruleId = menu.dataset.ruleId;
+  if (!ruleId) return;
+  const shouldDelete = window.confirm("Удалить скрипт? Это действие нельзя отменить.");
+  if (!shouldDelete) return;
+  await deleteRule(ruleId);
+  showNotification("Скрипт удален", "info");
+  closeScriptMenu();
+  await refresh();
 });
 
 refresh();
