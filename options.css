@@ -123,6 +123,12 @@ main {
   filter: brightness(1.06);
 }
 
+.pill-container{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .pill {
   font-size: 11px;
   padding: 2px 8px;

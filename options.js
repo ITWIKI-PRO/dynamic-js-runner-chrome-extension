@@ -5,14 +5,14 @@ function showNotification(message, type = 'success', duration = 3000) {
   const container = $('notificationContainer');
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
-  
+
   const icons = {
     success: '✓',
     error: '✕',
     info: 'ℹ',
     warning: '⚠'
   };
-  
+
   notification.innerHTML = `
     <div class="notification-icon">${icons[type] || icons.info}</div>
     <div class="notification-content">
@@ -20,15 +20,15 @@ function showNotification(message, type = 'success', duration = 3000) {
     </div>
     <div class="notification-close">×</div>
   `;
-  
+
   const closeBtn = notification.querySelector('.notification-close');
   closeBtn.addEventListener('click', () => {
     notification.classList.add('removing');
     setTimeout(() => notification.remove(), 300);
   });
-  
+
   container.appendChild(notification);
-  
+
   if (duration > 0) {
     setTimeout(() => {
       if (notification.parentNode) {
@@ -49,7 +49,7 @@ function showConfirm(title, message) {
       overlay.className = 'modalOverlay';
       document.body.appendChild(overlay);
     }
-    
+
     overlay.innerHTML = `
       <div class="modal">
         <div class="modal-title">${escapeHtml(title)}</div>
@@ -60,19 +60,19 @@ function showConfirm(title, message) {
         </div>
       </div>
     `;
-    
+
     overlay.classList.add('active');
-    
+
     const handleConfirm = () => {
       overlay.classList.remove('active');
       resolve(true);
     };
-    
+
     const handleCancel = () => {
       overlay.classList.remove('active');
       resolve(false);
     };
-    
+
     $('confirmOk').addEventListener('click', handleConfirm);
     $('confirmCancel').addEventListener('click', handleCancel);
     overlay.addEventListener('click', (e) => {
@@ -125,15 +125,16 @@ function renderList() {
 
     const title = (r.name && r.name.trim()) ? r.name.trim() : "(без названия)";
     const type = (r.patternType === "regex") ? "REGEX" : "Chrome";
-    const runAtLabel = 
+    const runAtLabel =
       r.runAt === "document_head" ? "HEAD" :
-      r.runAt === "document_start" ? "START" :
-      r.runAt === "document_end" ? "END" : "IDLE";
+        r.runAt === "document_start" ? "START" :
+          r.runAt === "document_end" ? "END" : "IDLE";
     const headStyle = r.runAt === "document_head" ? "background-color: #c41e3a;" : "";
     el.innerHTML = `
-      <div class="pill">${r.enabled ? "ON" : "OFF"}</div>
+    <div class="pill-container">
       <div class="pill">${type}</div>
       <div class="pill" style="${headStyle}">${runAtLabel}</div>
+    </div>
       <div class="ruleMain">
         <div class="ruleTitle">${escapeHtml(title)}</div>
         <div class="ruleSub">${escapeHtml(r.pattern)}</div>
@@ -373,14 +374,14 @@ $("deleteRule").addEventListener("click", async () => {
   if (!selectedId) return;
   const r = state.rules.find(x => x.id === selectedId);
   if (!r) return;
-  
+
   const confirmed = await showConfirm(
     "Удалить правило?",
     `Вы уверены, что хотите удалить правило "${escapeHtml(r.name || '(без названия)')}"`
   );
-  
+
   if (!confirmed) return;
-  
+
   state.rules = state.rules.filter(x => x.id !== selectedId);
   await saveState();
   renderList();
@@ -508,7 +509,7 @@ async function init() {
   await saveState(); // persist normalization if needed
   renderList();
   clearEditor();
-  
+
   // Проверяем, если нужно выбрать конкретное правило из popup
   const session = await chrome.storage.session.get(['selectedRuleId']);
   if (session.selectedRuleId && state.rules.some(r => r.id === session.selectedRuleId)) {
