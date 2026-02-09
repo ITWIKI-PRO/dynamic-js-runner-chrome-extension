@@ -166,6 +166,121 @@ function escapeHtml(s) {
   }[c]));
 }
 
+const jsKeywords = new Set([
+  "await", "break", "case", "catch", "class", "const", "continue", "debugger",
+  "default", "delete", "do", "else", "export", "extends", "false", "finally",
+  "for", "function", "if", "import", "in", "instanceof", "let", "new", "null",
+  "return", "super", "switch", "this", "throw", "true", "try", "typeof", "var",
+  "void", "while", "with", "yield"
+]);
+
+function escapeHtmlChunk(value) {
+  return value.replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  }[c]));
+}
+
+function highlightCode(code) {
+  let output = "";
+  let i = 0;
+
+  const isIdentifierStart = (ch) => /[A-Za-z_$]/.test(ch);
+  const isIdentifierPart = (ch) => /[A-Za-z0-9_$]/.test(ch);
+  const isDigit = (ch) => /[0-9]/.test(ch);
+  const operatorChars = new Set(["=", "+", "-", "*", "%", "<", ">", "!", "&", "|", "^", "~", "?", ":", "."]);
+
+  while (i < code.length) {
+    const ch = code[i];
+    const next = code[i + 1];
+
+    if (ch === "/" && next === "/") {
+      let end = i + 2;
+      while (end < code.length && code[end] !== "\n") end += 1;
+      const comment = code.slice(i, end);
+      output += `<span class="token-comment">${escapeHtmlChunk(comment)}</span>`;
+      i = end;
+      continue;
+    }
+
+    if (ch === "/" && next === "*") {
+      let end = i + 2;
+      while (end < code.length && !(code[end] === "*" && code[end + 1] === "/")) {
+        end += 1;
+      }
+      end = Math.min(end + 2, code.length);
+      const comment = code.slice(i, end);
+      output += `<span class="token-comment">${escapeHtmlChunk(comment)}</span>`;
+      i = end;
+      continue;
+    }
+
+    if (ch === "'" || ch === '"' || ch === "`") {
+      const quote = ch;
+      let end = i + 1;
+      let escaped = false;
+      while (end < code.length) {
+        const current = code[end];
+        if (!escaped && current === quote) {
+          end += 1;
+          break;
+        }
+        escaped = !escaped && current === "\\";
+        end += 1;
+      }
+      const str = code.slice(i, end);
+      output += `<span class="token-string">${escapeHtmlChunk(str)}</span>`;
+      i = end;
+      continue;
+    }
+
+    if (isDigit(ch)) {
+      let end = i + 1;
+      while (end < code.length && /[0-9a-fA-FxXbBoO._]/.test(code[end])) {
+        end += 1;
+      }
+      const number = code.slice(i, end);
+      output += `<span class="token-number">${escapeHtmlChunk(number)}</span>`;
+      i = end;
+      continue;
+    }
+
+    if (isIdentifierStart(ch)) {
+      let end = i + 1;
+      while (end < code.length && isIdentifierPart(code[end])) {
+        end += 1;
+      }
+      const word = code.slice(i, end);
+      if (jsKeywords.has(word)) {
+        output += `<span class="token-keyword">${escapeHtmlChunk(word)}</span>`;
+      } else {
+        output += `<span class="token-identifier">${escapeHtmlChunk(word)}</span>`;
+      }
+      i = end;
+      continue;
+    }
+
+    if (operatorChars.has(ch)) {
+      output += `<span class="token-operator">${escapeHtmlChunk(ch)}</span>`;
+      i += 1;
+      continue;
+    }
+
+    output += escapeHtmlChunk(ch);
+    i += 1;
+  }
+
+  return output;
+}
+
+function syncCodeHighlight() {
+  const input = $("code");
+  const highlight = $("codeHighlight");
+  if (!input || !highlight) return;
+  highlight.innerHTML = `${highlightCode(input.value)}\n`;
+  highlight.scrollTop = input.scrollTop;
+  highlight.scrollLeft = input.scrollLeft;
+}
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -205,6 +320,7 @@ function clearEditor() {
   $("runAt").value = "document_idle";
   $("world").value = "MAIN";
   $("code").value = "";
+  syncCodeHighlight();
   $("ruleEnabled").checked = true;
   $("deleteRule").disabled = true;
 }
@@ -220,6 +336,7 @@ function selectRule(id) {
   $("runAt").value = r.runAt ?? "document_idle";
   $("world").value = r.world ?? "MAIN";
   $("code").value = r.code ?? "";
+  syncCodeHighlight();
   $("ruleEnabled").checked = r.enabled !== false;
   $("deleteRule").disabled = false;
 }
@@ -340,6 +457,32 @@ $("exportRules").addEventListener("click", async () => {
 
 $("patternType").addEventListener("change", updatePatternHelp);
 
+const codeInput = $("code");
+if (codeInput) {
+  codeInput.addEventListener("input", syncCodeHighlight);
+  codeInput.addEventListener("scroll", syncCodeHighlight);
+  codeInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+    event.preventDefault();
+    const start = codeInput.selectionStart;
+    const end = codeInput.selectionEnd;
+    const value = codeInput.value;
+    const indent = "  ";
+
+    if (event.shiftKey && start === end && value.slice(start - indent.length, start) === indent) {
+      codeInput.value = value.slice(0, start - indent.length) + value.slice(end);
+      codeInput.selectionStart = start - indent.length;
+      codeInput.selectionEnd = start - indent.length;
+    } else {
+      codeInput.value = value.slice(0, start) + indent + value.slice(end);
+      codeInput.selectionStart = start + indent.length;
+      codeInput.selectionEnd = start + indent.length;
+    }
+
+    syncCodeHighlight();
+  });
+}
+
 $("importFile").addEventListener("change", async (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
@@ -392,4 +535,3 @@ function updatePatternHelp() {
     pattern.placeholder = "*://*.example.com/*";
   }
 }
-
