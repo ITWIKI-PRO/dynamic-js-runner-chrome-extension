@@ -152,6 +152,10 @@ function renderList() {
     });
 
     el.addEventListener("click", () => selectRule(r.id));
+    el.addEventListener("contextmenu", (event) => {
+      event.preventDefault();
+      openRuleMenu(event.clientX, event.clientY, r);
+    });
     root.appendChild(el);
   }
 }
@@ -160,6 +164,36 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[c]));
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function closeRuleMenu() {
+  const menu = $("ruleMenu");
+  menu.classList.remove("open");
+  menu.setAttribute("aria-hidden", "true");
+  menu.dataset.ruleId = "";
+  menu.dataset.enabled = "";
+}
+
+function openRuleMenu(x, y, rule) {
+  const menu = $("ruleMenu");
+  const toggleButton = $("menuToggle");
+  const label = rule.enabled ? "Отключить" : "Включить";
+  toggleButton.textContent = label;
+  menu.dataset.ruleId = rule.id;
+  menu.dataset.enabled = String(rule.enabled);
+  menu.classList.add("open");
+  menu.setAttribute("aria-hidden", "false");
+
+  const { innerWidth, innerHeight } = window;
+  const rect = menu.getBoundingClientRect();
+  const left = clamp(x, 8, innerWidth - rect.width - 8);
+  const top = clamp(y, 8, innerHeight - rect.height - 8);
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
 }
 
 function clearEditor() {
@@ -237,6 +271,61 @@ $("deleteRule").addEventListener("click", async () => {
   showNotification("Правило удалено", "success");
 });
 
+document.addEventListener("click", (event) => {
+  const menu = $("ruleMenu");
+  if (!menu.classList.contains("open")) return;
+  if (menu.contains(event.target)) return;
+  closeRuleMenu();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeRuleMenu();
+  }
+});
+
+window.addEventListener("blur", () => {
+  closeRuleMenu();
+});
+
+$("menuToggle").addEventListener("click", async () => {
+  const menu = $("ruleMenu");
+  const ruleId = menu.dataset.ruleId;
+  const enabled = menu.dataset.enabled === "true";
+  if (!ruleId) return;
+  const rule = state.rules.find(x => x.id === ruleId);
+  if (!rule) return;
+  rule.enabled = !enabled;
+  await saveState();
+  renderList();
+  if (selectedId === rule.id) $("ruleEnabled").checked = rule.enabled;
+  const message = enabled ? "Правило отключено" : "Правило включено";
+  showNotification(message, "info");
+  closeRuleMenu();
+});
+
+$("menuDelete").addEventListener("click", async () => {
+  const menu = $("ruleMenu");
+  const ruleId = menu.dataset.ruleId;
+  if (!ruleId) return;
+  const rule = state.rules.find(x => x.id === ruleId);
+  if (!rule) return;
+  const confirmed = await showConfirm(
+    "Удалить правило?",
+    `Вы уверены, что хотите удалить правило "${escapeHtml(rule.name || '(без названия)')}"`
+  );
+  if (!confirmed) return;
+  state.rules = state.rules.filter(x => x.id !== ruleId);
+  await saveState();
+  renderList();
+  if (selectedId === ruleId) {
+    clearEditor();
+    if (state.rules.length) selectRule(state.rules[0].id);
+  }
+  showNotification("Правило удалено", "success");
+  closeRuleMenu();
+});
+
 $("exportRules").addEventListener("click", async () => {
   const payload = { version: 1, exportedAt: new Date().toISOString(), enabled: state.enabled, rules: state.rules };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -303,5 +392,4 @@ function updatePatternHelp() {
     pattern.placeholder = "*://*.example.com/*";
   }
 }
-
 
