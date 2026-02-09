@@ -507,12 +507,15 @@ $("importFile").addEventListener("change", async (e) => {
 async function init() {
   await loadState();
   await saveState(); // persist normalization if needed
+  const draftId = await applyDraftFromSession();
   renderList();
   clearEditor();
 
   // Проверяем, если нужно выбрать конкретное правило из popup
   const session = await chrome.storage.session.get(['selectedRuleId']);
-  if (session.selectedRuleId && state.rules.some(r => r.id === session.selectedRuleId)) {
+  if (draftId && state.rules.some(r => r.id === draftId)) {
+    selectRule(draftId);
+  } else if (session.selectedRuleId && state.rules.some(r => r.id === session.selectedRuleId)) {
     selectRule(session.selectedRuleId);
     // Очищаем selectedRuleId из session
     await chrome.storage.session.remove('selectedRuleId');
@@ -522,6 +525,24 @@ async function init() {
 }
 
 init();
+
+async function applyDraftFromSession() {
+  const session = await chrome.storage.session.get(['createRuleDraft']);
+  if (!session.createRuleDraft) return null;
+  await chrome.storage.session.remove('createRuleDraft');
+  const draft = session.createRuleDraft;
+  const rule = normalizeRule({
+    name: draft?.name ?? "Новое правило",
+    patternType: draft?.patternType ?? "match",
+    pattern: draft?.pattern ?? "*://*/*",
+    code: draft?.code ?? ""
+  });
+  state.rules.unshift(rule);
+  selectedId = rule.id;
+  showNotification("Новое правило создано", "success");
+  await saveState();
+  return rule.id;
+}
 function updatePatternHelp() {
   const t = $("patternType")?.value ?? "match";
   const help = $("patternHelp");
