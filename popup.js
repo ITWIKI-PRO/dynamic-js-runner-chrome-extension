@@ -134,23 +134,13 @@ async function createRuleForCurrentPage() {
     return;
   }
   const title = (tab.title || "").trim();
-  const rule = {
-    id: crypto.randomUUID(),
-    name: title ? `Скрипт: ${title}` : "Скрипт для страницы",
-    enabled: true,
+  const draft = {
+    name: title ? `Скрипт: ${title}` : "Новое правило",
     patternType: "regex",
-    pattern: buildExactUrlPattern(tab.url),
-    code: "",
-    runAt: "document_idle",
-    world: "MAIN",
-    blockingHead: false
+    pattern: buildExactUrlPattern(tab.url)
   };
 
-  const current = await chrome.storage.local.get(null);
-  const rules = Array.isArray(current.rules) ? current.rules : [];
-  rules.unshift(rule);
-  await chrome.storage.local.set({ rules });
-  await chrome.storage.session.set({ selectedRuleId: rule.id });
+  await chrome.storage.session.set({ createRuleDraft: draft });
   await chrome.runtime.openOptionsPage();
 }
 
