@@ -183,6 +183,73 @@ textarea {
   line-height: 1.4;
 }
 
+.codeEditor {
+  position: relative;
+  min-height: 320px;
+  border-radius: 12px;
+  border: 1px solid #243246;
+  background: #0b0f14;
+  overflow: hidden;
+}
+
+.codeEditor textarea {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  color: transparent;
+  caret-color: #e6edf3;
+  border: none;
+  margin: 0;
+  padding: 10px;
+  height: 100%;
+  min-height: 320px;
+  resize: vertical;
+}
+
+.codeEditor textarea::selection {
+  background: rgba(88, 206, 245, 0.35);
+}
+
+.codeEditor pre {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre;
+  color: #e6edf3;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.codeEditor .token-comment {
+  color: #7f8ea3;
+}
+
+.codeEditor .token-string {
+  color: #91d5ff;
+}
+
+.codeEditor .token-number {
+  color: #f6c177;
+}
+
+.codeEditor .token-keyword {
+  color: #c2a6ff;
+  font-weight: 600;
+}
+
+.codeEditor .token-operator {
+  color: #ff9b9b;
+}
+
+.codeEditor .token-identifier {
+  color: #e6edf3;
+}
+
 .help {
   font-size: 12px;
   opacity: .8;

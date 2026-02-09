@@ -78,8 +78,11 @@
 
         <div class="field">
           <label>JavaScript</label>
-          <textarea id="code" spellcheck="false"
-            placeholder="// Любой JS. Выполняется в async IIFE, ошибки пишутся в console."></textarea>
+          <div class="codeEditor">
+            <pre id="codeHighlight" aria-hidden="true"></pre>
+            <textarea id="code" spellcheck="false"
+              placeholder="// Любой JS. Выполняется в async IIFE, ошибки пишутся в console."></textarea>
+          </div>
         </div>
 
         <div class="rowButtons">
