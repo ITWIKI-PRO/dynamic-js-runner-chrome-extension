@@ -102,6 +102,42 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+function escapeRegex(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildExactUrlPattern(url) {
+  return `^${escapeRegex(url)}$`;
+}
+
+async function createRuleForCurrentPage() {
+  const tab = await getActiveTab();
+  if (!tab?.url) return;
+  if (/^(chrome|edge|about):/i.test(tab.url)) {
+    showNotification("Нельзя создать правило для этой страницы", "error");
+    return;
+  }
+  const title = (tab.title || "").trim();
+  const rule = {
+    id: crypto.randomUUID(),
+    name: title ? `Скрипт: ${title}` : "Скрипт для страницы",
+    enabled: true,
+    patternType: "regex",
+    pattern: buildExactUrlPattern(tab.url),
+    code: "",
+    runAt: "document_idle",
+    world: "MAIN",
+    blockingHead: false
+  };
+
+  const current = await chrome.storage.local.get(null);
+  const rules = Array.isArray(current.rules) ? current.rules : [];
+  rules.unshift(rule);
+  await chrome.storage.local.set({ rules });
+  await chrome.storage.session.set({ selectedRuleId: rule.id });
+  await chrome.runtime.openOptionsPage();
+}
+
 $("enabled").addEventListener("change", async (e) => {
   await chrome.runtime.sendMessage({ type: "SET_ENABLED", enabled: e.target.checked });
   const statusText = e.target.checked ? "Автозапуск включен" : "Автозапуск отключен";
@@ -129,6 +165,10 @@ $("runNow").addEventListener("click", async () => {
 
 $("openOptions").addEventListener("click", async () => {
   await chrome.runtime.openOptionsPage();
+});
+
+$("createScript").addEventListener("click", async () => {
+  await createRuleForCurrentPage();
 });
 
 refresh();
