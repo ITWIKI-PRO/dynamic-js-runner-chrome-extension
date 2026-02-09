@@ -383,3 +383,40 @@ textarea {
   font-size: 13px;
   padding: 8px 12px;
 }
+
+/* Context menu */
+.context-menu {
+  position: fixed;
+  z-index: 1000;
+  background: #0f1625;
+  border: 1px solid #23324a;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  display: none;
+  min-width: 150px;
+}
+
+.context-menu.open {
+  display: block;
+}
+
+.context-item {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #e6edf3;
+  text-align: left;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.context-item:hover {
+  background: #1b2a41;
+}
+
+.context-item.danger {
+  color: #ff8b8b;
+}
