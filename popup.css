@@ -30,6 +30,16 @@ input:checked + .slider { background-color: #1f6feb; }
 input:checked + .slider:before { transform: translateX(18px); }
 
 .scripts-list { margin-top: 8px; }
-.script-item { padding: 8px 10px; background: #0a0f15; border: 1px solid #1f2a3a; border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: all .2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.script-item { padding: 8px 10px; background: #0a0f15; border: 1px solid #1f2a3a; border-radius: 6px; margin-bottom: 6px; cursor: pointer; transition: all .2s; }
 .script-item:hover { background: #172140; border-color: #2a4a6e; }
+.script-item.is-disabled { opacity: .6; }
+.script-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.script-state { font-size: 11px; margin-top: 4px; opacity: .8; }
+.script-meta { display: flex; justify-content: space-between; gap: 8px; }
 .no-scripts { margin-top: 8px; padding: 8px 10px; font-size: 12px; opacity: .6; color: #99afc7; }
+
+.context-menu { position: fixed; z-index: 10; background: #0f1625; border: 1px solid #23324a; border-radius: 8px; padding: 6px; box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35); display: none; min-width: 150px; }
+.context-menu.open { display: block; }
+.context-item { width: 100%; padding: 8px 10px; border-radius: 6px; border: none; background: transparent; color: #e6edf3; text-align: left; cursor: pointer; font-weight: 600; }
+.context-item:hover { background: #1b2a41; }
+.context-item.danger { color: #ff8b8b; }
